@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Leaflet Marker Performance Test</title>
+    <title>Leaflet Vehicle-Marker Performance Test</title>
 
     <link
       rel="stylesheet"
@@ -33,11 +33,9 @@
         box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
         font-size: 13px;
         line-height: 1.7;
-        min-width: 220px;
+        min-width: 230px;
       }
       #stats label {
-        display: block;
-        margin-top: 6px;
         font-weight: bold;
       }
       #stats input[type="number"] {
@@ -52,22 +50,16 @@
         margin-top: 6px;
       }
       #stats button {
-        margin-top: 10px;
         padding: 5px 10px;
         font-size: 13px;
         cursor: pointer;
         border: 1px solid #1976d2;
         background: #1976d2;
-        color: white;
+        color: #fff;
         border-radius: 4px;
       }
       #stats button:hover {
         background: #1565c0;
-      }
-      #stats .event {
-        margin-top: 8px;
-        color: #333;
-        font-style: italic;
       }
       #stats .preset {
         margin-top: 6px;
@@ -83,82 +75,111 @@
       #stats .preset button:hover {
         background: #ddd;
       }
-
-      /* minimal marker (1 node) */
-      .test-marker {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: #1976d2;
-        border: 2px solid white;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-        box-sizing: border-box;
+      #stats .event {
+        margin-top: 8px;
+        color: #333;
+        font-style: italic;
       }
 
-      /* rough approximation of the real ~25-node vehicle marker */
       .vehicle-marker {
-        width: 80px;
-        height: 80px;
+        font-size: 14px;
+        color: #1a1a1a;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        outline: none;
+      }
+      .vehicle-marker.animated,
+      .vehicle-marker.animated .marker-wrapper {
+        transition: transform 1s linear;
+      }
+
+      .vehicle-marker .outring,
+      .vehicle-marker .inring {
+        display: none;
+      }
+      .vehicle-marker:hover .outring,
+      .vehicle-marker:hover .inring,
+      .vehicle-marker.active .outring,
+      .vehicle-marker.active .inring {
+        display: block;
+        position: absolute;
+        z-index: 0;
       }
       .vehicle-marker .outring {
-        position: absolute;
-        inset: 0;
+        width: 80px;
+        height: 80px;
+        background-color: rgba(255, 255, 255, 0.4);
         border-radius: 50%;
-        border: 2px solid rgba(25, 118, 210, 0.4);
+        position: absolute;
       }
-      .vehicle-marker .inring {
-        position: absolute;
-        inset: 8px;
+      .vehicle-marker .outring .inring {
+        width: 70px;
+        height: 70px;
         border-radius: 50%;
-        border: 2px solid rgba(25, 118, 210, 0.25);
+        background-color: rgba(255, 255, 255, 0.7);
+        margin: 5px;
+      }
+
+      .vehicle-marker .beacon-ring-container {
+        position: absolute;
+        z-index: 1;
       }
       .vehicle-marker .marker-wrapper {
+        position: relative;
+        z-index: 2;
+      }
+
+      .vehicle-marker .vehicle-icon {
         position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 40px;
-        height: 40px;
-        margin: -20px 0 0 -20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
       }
-      .vehicle-marker .marker-wrapper img {
-        width: 40px;
-        height: 40px;
+
+      .vehicle-marker .front {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 3;
       }
-      .vehicle-marker .shimmer-overlay {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 40px;
-        height: 40px;
-      }
+
       .vehicle-marker .label-container {
         position: absolute;
-        top: 82px;
+        bottom: -0.7rem;
         left: 50%;
         transform: translateX(-50%);
         white-space: nowrap;
       }
+
       .vehicle-marker .marker-label {
-        background: white;
+        background: #fff;
         padding: 1px 4px;
         border-radius: 3px;
         font-size: 12px;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
       }
-      .vehicle-marker .badge {
-        position: absolute;
-        top: 0;
-        right: 0;
+
+      .test-marker {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #1976d2;
+        border: 2px solid #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        box-sizing: border-box;
       }
     </style>
   </head>
 
   <body>
     <div id="stats">
-      <strong>Leaflet marker perf test</strong>
+      <strong>Vehicle-marker perf test</strong>
 
-      <label for="count-input">Marker count</label>
       <div class="row">
+        <label for="count-input">Count</label>
         <input
           type="number"
           id="count-input"
@@ -178,16 +199,12 @@
       </div>
 
       <div class="row">
-        <input type="checkbox" id="real-toggle" />
-        <label for="real-toggle" style="display: inline; margin: 0"
-          >Use real marker (~25 nodes)</label
-        >
+        <input type="checkbox" id="real-toggle" checked disabled />
+        <label for="real-toggle" style="font-weight: normal">Markers</label>
       </div>
 
       <div style="margin-top: 8px">
-        Rendered: <span id="marker-count">0</span> (<span id="mode"
-          >minimal</span
-        >)
+        Rendered: <span id="marker-count">0</span>
       </div>
       <div class="event" id="event">Ready</div>
     </div>
@@ -195,7 +212,6 @@
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <script>
       const map = L.map("map", {
         center: [51.1657, 10.4515],
@@ -213,41 +229,40 @@
       markerPane.style.zIndex = 650;
 
       const minimalHtml = '<div class="test-marker"></div>';
+
       const realHtml = `
-      <div class="outring FIRE_VEHICLE"><div class="inring"></div></div>
-      <div class="marker-wrapper vehicle-icon FIRE_VEHICLE" style="transform-origin:center center; transform: rotateZ(177deg)">
-        <img src="https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png" class="img">
-        <img src="" class="hover-img">
-        <img src="" class="pressed-img">
-        <img src="" class="focus-img">
-        <div class="shimmer-overlay image-overlay" style="transform-origin:center center; transform: translate(-50%, -50%) rotateZ(-177deg)">
+      <div class="outring  FIRE_VEHICLE"><div class="inring "></div></div>
+      <div class="marker-wrapper" style="transform-origin:center center;">
+       <img src="./assets/map-unknown-online.svg" class="img" style="width:40px; height:52px;">
+        <img src="" alt="" class="hover-img">
+        <img src="" alt="" class="pressed-img">
+        <img src="" alt="" class="focus-img">
+        <div class="shimmer-overlay image-overlay" style="transform-origin:center center; transform: translate(-50%, -50%)">
           <div class="shimmer-band"></div>
         </div>
-        <div class="front">
-          <div>
-            <i class="icon state-icon circle vehicle-content offline"></i>
-            <div class="shimmer-overlay-icon-only" style="transform-origin:center center; transform: translate(-50%, -50%) rotateZ(-177deg)">
-              <div class="shimmer-band-icon-only"></div>
-            </div>
+        <div class="front ">
+          <div class="">
+            <i class="icon state-icon circle vehicle-content"></i>
           </div>
         </div>
       </div>
       <div class="beacon-ring-container"></div>
-      <div class="label-container"><div class="marker-label">7C9763504CCF</div></div>
-      <div class="badge badge-top-right"></div>
+      <div class="label-container"><div class="marker-label">Test Label</div></div>
+      <div class="badge badge-top-right" style="display:none;"></div>
     `;
-
-      let markers = [];
 
       function buildIcon(useReal) {
         return L.divIcon({
-          className: useReal ? "vehicle-marker bird-view" : "",
+          className: useReal
+            ? "vehicle-marker bird-view leaflet-interactive"
+            : "",
           html: useReal ? realHtml : minimalHtml,
           iconSize: useReal ? [80, 80] : [12, 12],
           iconAnchor: useReal ? [40, 40] : [6, 6],
         });
       }
 
+      let markers = [];
       function clearMarkers() {
         markers.forEach((m) => map.removeLayer(m));
         markers = [];
@@ -256,18 +271,16 @@
       function renderMarkers(count, useReal) {
         const evt = document.getElementById("event");
         evt.textContent = "Rendering...";
-
         clearMarkers();
+
         const icon = buildIcon(useReal);
         const t0 = performance.now();
-
         const cols = Math.ceil(Math.sqrt(count) * 1.3);
         for (let i = 0; i < count; i++) {
           const x = i % cols;
           const y = Math.floor(i / cols);
           const lat = 47.4 + ((y % 40) / 40) * 7.7;
           const lng = 5.8 + ((x % 50) / 49) * 9.9;
-
           const marker = L.marker([lat, lng], {
             icon,
             pane: "testMarkers",
@@ -275,19 +288,17 @@
           }).addTo(map);
           markers.push(marker);
         }
+        const ms = performance.now() - t0;
 
-        const renderMs = performance.now() - t0;
         document.getElementById("marker-count").textContent = markers.length;
         document.getElementById("mode").textContent = useReal
-          ? "real ~25 nodes"
-          : "minimal 1 node";
-        evt.textContent = `Rendered ${markers.length} in ${renderMs.toFixed(0)} ms`;
+          ? "real vehicle"
+          : "minimal 1-node";
+        evt.textContent = `Rendered ${markers.length} in ${ms.toFixed(0)} ms`;
       }
 
-      // ---- controls ----
       const countInput = document.getElementById("count-input");
       const realToggle = document.getElementById("real-toggle");
-
       function renderFromControls() {
         const count = Math.max(1, parseInt(countInput.value, 10) || 0);
         renderMarkers(count, realToggle.checked);
@@ -300,15 +311,13 @@
         if (e.key === "Enter") renderFromControls();
       });
       realToggle.addEventListener("change", renderFromControls);
-
-      document.querySelectorAll(".preset button").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          countInput.value = btn.dataset.count;
+      document.querySelectorAll(".preset button").forEach((b) => {
+        b.addEventListener("click", () => {
+          countInput.value = b.dataset.count;
           renderFromControls();
         });
       });
 
-      // ---- timing ----
       const evt = document.getElementById("event");
       let moveStart,
         moveCount = 0;
